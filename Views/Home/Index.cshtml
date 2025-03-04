@@ -1,0 +1,344 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+
+<form method="post" action="/Home/SubmitForm">
+    <div class="container mt-5">
+
+        <div class="card" id="divServidores">
+            <div class="card-header">
+                Servidores
+
+            </div>
+
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Servidores Configurados</label>
+                            <select class="form-control container" id="ServidorSelecionado" name="ServidorSelecionado" onchange="fetchServidorConfiguracoes(true)">
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6" id="divIpServidor">
+                        <div class="form-group">
+                            <label>IP do Servidor</label>
+                            <input type="text" class="form-control container" id="ipServidor" name="ipServidor">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">&nbsp;</div>
+
+        <div class="card" id="divConfiguracoesGerais">
+            <div class="card-header">
+                Configurações Gerais
+
+            </div>
+            <div class="card-body">
+                <div class="form-group col-md-3">
+                    <label for="quantidadeOperadoras">Quantidade de Operadoras</label>
+                    <input type="number" class="form-control container" id="globalOPERADORAS" name="globalOPERADORAS" required onchange="createOperadoraCards()">
+                </div>
+                <div class="form-group">
+                    <label for="dirTrabalho">Diretório de Trabalho</label>
+                    <input type="text" class="form-control container" id="globalDirTrabalho" name="globalDirTrabalho" required>
+                </div>
+                <div class="form-group">
+                    <label for="serverCheque">Server Cheque</label>
+                    <input type="url" class="form-control container" id="globalServer_Cheque" name="globalServer_Cheque">
+                </div>
+                <div class="form-group">
+                    <label for="operadorasApi">Operadoras API</label>
+                    <input type="url" class="form-control container" id="globalOPERADORAS_API" name="globalOPERADORAS_API">
+                </div>
+                <div class="form-group">
+                    <label for="hsmServer">HSM Server</label>
+                    <input type="url" class="form-control container" id="globalHSM_SERVER" name="globalHSM_SERVER">
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="servidorAutorizadorIso">Servidor Autorizador ISO</label>
+                            <input type="text" class="form-control container" id="globalSERVIDOR_AUTORIZADOR_ISO" name="globalSERVIDOR_AUTORIZADOR_ISO">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="caminhoAutorizadorIso">Caminho Autorizador ISO</label>
+                            <input type="text" class="form-control container" id="globalCAMINHO_AUTORIZADOR_ISO" name="globalCAMINHO_AUTORIZADOR_ISO">
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="emailParaAlerta">Email para Alerta</label>
+                            <input type="email" class="form-control container" id="globalEMAIL_PARA_ALERTA" name="globalEMAIL_PARA_ALERTA">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-check-label" for="homologacao">Homologação</label>
+                            <select class="form-control container" id="globalHomologacao" name="globalHomologacao">
+                                <option value="Sim">Sim</option>
+                                <option value="Não">Não</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">&nbsp;</div>
+
+        <div id="operadorasContainer"></div>
+
+        <div class="row">&nbsp;</div>
+
+        <div class="row">
+            <div class="col-12 d-flex justify-content-end">
+                <button type="submit" class="btn btn-primary">Gravar um novo arquivo</button>
+            </div>
+        </div>
+
+    </div>
+</form>
+
+<script type="text/javascript">
+    document.addEventListener("DOMContentLoaded", function () {
+        //deixar a div de configurações gerais invisível
+        document.getElementById('divConfiguracoesGerais').style.display = 'none';
+
+        fetch('/api/Servidores')
+            .then(response => response.json())
+            .then(data => {
+                const select = document.getElementById('ServidorSelecionado');
+                data.forEach(servidor => {
+                    const option = document.createElement('option');
+                    option.value = servidor.EnderecoIP;
+                    option.textContent = servidor.EnderecoIP;
+                    select.appendChild(option);
+                });
+                fetchServidorConfiguracoes(true);
+            })
+            .catch(error => console.error('Erro ao carregar servidores:', error));
+    });
+
+    function fetchServidorConfiguracoes(criarCards) {
+        const select = document.getElementById('ServidorSelecionado');
+        const enderecoIP = select.value;
+
+        if (enderecoIP == null || enderecoIP == '') {
+            return;
+        }
+
+        if (enderecoIP == "Novo Servidor"){
+            document.getElementById('divIpServidor').style.display = 'block';
+        }
+        else{
+            document.getElementById('divIpServidor').style.display = 'none';
+        }
+
+        fetch(`/api/Servidores/${enderecoIP}`)
+            .then(response => response.json())
+            .then(configuracaoIni => {
+                //deixar d div de configurações gerais visível
+                document.getElementById('divConfiguracoesGerais').style.display = 'block';
+
+                //Preencher os campos de Configurações Gerais
+                if (criarCards)
+                    document.getElementById('globalOPERADORAS').value = configuracaoIni.global.OPERADORAS;
+
+                document.getElementById('globalDirTrabalho').value = configuracaoIni.global.DirTrabalho;
+                document.getElementById('globalServer_Cheque').value = configuracaoIni.global.Server_Cheque;
+                document.getElementById('globalOPERADORAS_API').value = configuracaoIni.global.OPERADORAS_API;
+                document.getElementById('globalHSM_SERVER').value = configuracaoIni.global.HSM_SERVER;
+                document.getElementById('globalSERVIDOR_AUTORIZADOR_ISO').value = configuracaoIni.global.SERVIDOR_AUTORIZADOR_ISO;
+                document.getElementById('globalCAMINHO_AUTORIZADOR_ISO').value = configuracaoIni.global.CAMINHO_AUTORIZADOR_ISO;
+                document.getElementById('globalEMAIL_PARA_ALERTA').value = configuracaoIni.global.EMAIL_PARA_ALERTA;
+
+                // Definir a opção selecionada do select de homologação
+                const homologacaoSelect = document.getElementById('globalHomologacao');
+                homologacaoSelect.value = configuracaoIni.global.Homologacao ? 'Sim' : 'Não';
+
+                if (criarCards)
+                    createOperadoraCards();
+
+                if (configuracaoIni != null) {
+                    if (configuracaoIni.ListaDeOperadoras != null) {
+                        configuracaoIni.ListaDeOperadoras.forEach((operadora, index) => {
+                            if (operadora != null) {
+                                if (operadora.CODIGO != null) {
+                                     const strIndex = String(index + 1).padStart(2, '0');
+
+                                    document.getElementById(`operadora[${strIndex}]CODIGO`).value = operadora.CODIGO;
+                                    document.getElementById(`operadora[${strIndex}]NOME`).value = operadora.NOME;
+                                    document.getElementById(`operadora[${strIndex}]Servidor`).value = operadora.Servidor;
+                                    document.getElementById(`operadora[${strIndex}]CAMINHO`).value = operadora.CAMINHO;
+
+                                    document.getElementById(`operadora[${strIndex}]DirFechamento`).value = operadora.DirFechamento;
+                                    document.getElementById(`operadora[${strIndex}]Movimentos_Diarios`).value = operadora.Movimentos_Diarios;
+                                    document.getElementById(`operadora[${strIndex}]Log_Movimentos`).value = operadora.Log_Movimentos;
+                                    document.getElementById(`operadora[${strIndex}]DIR_FATURAS`).value = operadora.DIR_FATURAS;
+                                    document.getElementById(`operadora[${strIndex}]DIR_CONCILIACAO`).value = operadora.DIR_CONCILIACAO;
+                                    document.getElementById(`operadora[${strIndex}]DIR_CONCILIACAO_2`).value = operadora.DIR_CONCILIACAO_2;
+
+                                    document.getElementById(`operadora[${strIndex}]Executa_Fechamento`).value = operadora.Executa_Fechamento ? "Sim" : "Não";
+                                    document.getElementById(`operadora[${strIndex}]Registra_Boletos_Online`).value = operadora.Registra_Boletos_Online ? "Sim" : "Não";
+                                    document.getElementById(`operadora[${strIndex}]Utiliza_URA`).value = operadora.Utiliza_URA ? "Sim" : "Não";
+                                    document.getElementById(`operadora[${strIndex}]Executa_Processa_Filas`).value = operadora.Executa_Processa_Filas ? "Sim" : "Não";
+                                    document.getElementById(`operadora[${strIndex}]Analistas`).value = operadora.Analistas;
+
+                                    //trocar a cor da div card-header para vermelho claro
+                                    if ((operadora.Servidor == "") && (operadora.CAMINHO == "")) {
+                                        document.getElementById(`divBodyOperadora_${strIndex}`).classList.add('bg-danger-light');
+                                    }
+                                    else if (operadora.CAMINHO == "") {
+                                        document.getElementById(`divBodyOperadora_${strIndex}`).classList.add('bg-warning-light');
+                                    }
+                                }
+                            }
+                        });
+                    }
+                }
+            })
+            .catch(error => console.error('Erro ao carregar configurações do servidor:', error));
+    }
+
+
+    function createOperadoraCards() {
+        const quantidadeOperadoras = document.getElementById('globalOPERADORAS').value;
+        const container = document.getElementById('operadorasContainer');
+        container.innerHTML = ''; // Limpar os cards existentes
+
+        for (let i = 0; i < quantidadeOperadoras; i++) {
+            const strIndex = String(i + 1).padStart(2, '0');
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+            <div class="card-header d-flex justify-content-between align-items-center" id="divHeaderOperadora_${strIndex}">
+                <span>Operadora ${strIndex}</span>
+                <div class="form-check">
+                    <input type="checkbox" id="removeOperadora[${strIndex}]" name="removeOperadora[${strIndex}]" class="form-check-input">
+                    <label>Remover</label>
+                </div>
+            </div>
+            <div class="card-body" id="divBodyOperadora_${strIndex}">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="operadoraCodigo_${strIndex}">Código</label>
+                            <input type="text" class="form-control container" id="operadora[${strIndex}]CODIGO" name="operadora[${strIndex}]CODIGO">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Nome</label>
+                            <input type="text" class="form-control container" id="operadora[${strIndex}]NOME" name="operadora[${strIndex}]NOME">
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Servidor</label>
+                            <input type="text" class="form-control container" id="operadora[${strIndex}]Servidor" name="operadora[${strIndex}]Servidor">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Caminho</label>
+                            <input type="text" class="form-control container" id="operadora[${strIndex}]CAMINHO" name="operadora[${strIndex}]CAMINHO">
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>DirFechamento</label>
+                            <input type="text" class="form-control container" id="operadora[${strIndex}]DirFechamento" name="operadora[${strIndex}]DirFechamento">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Movimentos_Diarios</label>
+                            <input type="text" class="form-control container" id="operadora[${strIndex}]Movimentos_Diarios" name="operadora[${strIndex}]Movimentos_Diarios">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Log_Movimentos</label>
+                            <input type="text" class="form-control container" id="operadora[${strIndex}]Log_Movimentos" name="operadora[${strIndex}]Log_Movimentos">
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>DIR_FATURAS</label>
+                            <input type="text" class="form-control container" id="operadora[${strIndex}]DIR_FATURAS" name="operadora[${strIndex}]DIR_FATURAS">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>DIR_CONCILIACAO</label>
+                            <input type="text" class="form-control container" id="operadora[${strIndex}]DIR_CONCILIACAO" name="operadora[${strIndex}]DIR_CONCILIACAO">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>DIR_CONCILIACAO_2</label>
+                            <input type="text" class="form-control container" id="operadora[${strIndex}]DIR_CONCILIACAO_2" name="operadora[${strIndex}]DIR_CONCILIACAO_2">
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="form-group col-md-3">
+                        <label>Executa Fechamento</label>
+                        <select class="form-control container" id="operadora[${strIndex}]Executa_Fechamento" name="operadora[${strIndex}]Executa_Fechamento">
+                            <option value="Sim">Sim</option>
+                            <option value="Não">Não</option>
+                        </select>
+                    </div>
+                    <div class="form-group col-md-3">
+                        <label>Registra Boletos Online</label>
+                        <select class="form-control container" id="operadora[${strIndex}]Registra_Boletos_Online" name="operadora[${strIndex}]Registra_Boletos_Online">
+                            <option value="Sim">Sim</option>
+                            <option value="Não">Não</option>
+                        </select>
+                    </div>
+                    <div class="form-group col-md-3">
+                        <label>Utiliza URA</label>
+                        <select class="form-control container" id="operadora[${strIndex}]Utiliza_URA" name="operadora[${strIndex}]Utiliza_URA">
+                            <option value="Sim" >Sim</option>
+                            <option value="Não" >Não</option>
+                        </select>
+                    </div>
+                    <div class="form-group col-md-3">
+                        <label>Executa Processa_Filas</label>
+                        <select class="form-control container" id="operadora[${strIndex}]Executa_Processa_Filas" name="operadora[${strIndex}]Executa_Processa_Filas">
+                            <option value="Sim" >Sim</option>
+                            <option value="Não" >Não</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="form-group col-md-3">
+                        <label>Analistas</label>
+                        <input type="number" class="form-control container" id="operadora[${strIndex}]Analistas" name="operadora[${strIndex}]Analistas">
+                    </div>
+                </div>
+            </div>
+        `;
+            container.appendChild(card);
+        }
+
+        fetchServidorConfiguracoes(false);
+    }
+
+</script>
+
+
